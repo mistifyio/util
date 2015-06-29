@@ -3,9 +3,16 @@ package net
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
+
+// hostportCache stores the resulting hostport value for a given input to
+// prevent repeated SRV lookups.
+var hostportCache = make(map[string]string)
 
 const missingPortMsg = "missing port in address"
 
@@ -68,6 +75,55 @@ func SplitHostPort(hostport string) (host string, port string, err error) {
 		port = rawport[1:]
 	}
 	return
+}
+
+// LookupSRVPort determines the port for a service via an SRV lookup
+func LookupSRVPort(name string) (uint16, error) {
+	_, addrs, err := gonet.LookupSRV("", "", name)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(addrs) == 0 {
+		err := errors.New("no srv results")
+		return nil, err
+	}
+
+	return addrs[0].Port, nil
+}
+
+// HostWithPort returns a host:port or [host]:port, performing the necessary
+// port lookup if one is not provided. Results are cached.
+func HostWithPort(input string) (string, error) {
+	hostport, ok := hostportCache[input]
+	if ok {
+		return hostport
+	}
+
+	host, port, err := SplitHostPort(input)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+			"input": input,
+		}).Error("failed to split host and port")
+		return "", err
+	}
+
+	if port == "" {
+		srvPort, err := LookupSRVPort(host)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error": err,
+				"host":  host,
+			}).Error("srv lookup failed")
+			return "", err
+		}
+		port = fmt.Sprintf("%d", srvPort)
+	}
+
+	hostportCache[input] = net.JointHostPort(host, port)
+
+	return hostportCache[input], nil
 }
 
 func isMissingPort(err error) bool {
