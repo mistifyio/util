@@ -74,7 +74,7 @@ func TestLookupSRVPort(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 5269, port)
 
-	port, err = netutil.LookupSRVPort("_xmpp-server._tcp.asduhaisudbfa.com")
+	port, err = netutil.LookupSRVPort("_xmpp-server._tcp.asduhaisudbfa.invalid")
 	assert.Error(t, err)
 	assert.Empty(t, 0, port)
 }
