@@ -79,14 +79,14 @@ func SplitHostPort(hostport string) (host string, port string, err error) {
 
 // LookupSRVPort determines the port for a service via an SRV lookup
 func LookupSRVPort(name string) (uint16, error) {
-	_, addrs, err := gonet.LookupSRV("", "", name)
+	_, addrs, err := net.LookupSRV("", "", name)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	if len(addrs) == 0 {
 		err := errors.New("no srv results")
-		return nil, err
+		return 0, err
 	}
 
 	return addrs[0].Port, nil
@@ -97,7 +97,7 @@ func LookupSRVPort(name string) (uint16, error) {
 func HostWithPort(input string) (string, error) {
 	hostport, ok := hostportCache[input]
 	if ok {
-		return hostport
+		return hostport, nil
 	}
 
 	host, port, err := SplitHostPort(input)
@@ -121,7 +121,7 @@ func HostWithPort(input string) (string, error) {
 		port = fmt.Sprintf("%d", srvPort)
 	}
 
-	hostportCache[input] = net.JointHostPort(host, port)
+	hostportCache[input] = net.JoinHostPort(host, port)
 
 	return hostportCache[input], nil
 }

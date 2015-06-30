@@ -3,9 +3,11 @@ package net_test
 import (
 	"fmt"
 	"os"
+	"testing"
 	"text/tabwriter"
 
 	netutil "github.com/mistifyio/util/net"
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleSplit() {
@@ -65,4 +67,31 @@ func ExampleSplit() {
 	// [loca[lhost]:1234										too many '['
 	// [loca]lhost]:1234										too many ']'
 	// [localhost]:1234]										too many ']'
+}
+
+func TestLookupSRVPort(t *testing.T) {
+	port, err := netutil.LookupSRVPort("_xmpp-server._tcp.google.com")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 5269, port)
+
+	port, err = netutil.LookupSRVPort("_xmpp-server._tcp.asduhaisudbfa.com")
+	assert.Error(t, err)
+	assert.Empty(t, 0, port)
+}
+
+func TestHostWithPort(t *testing.T) {
+	hostport, err := netutil.HostWithPort(":8080")
+	assert.NoError(t, err)
+	assert.EqualValues(t, ":8080", hostport)
+
+	hostport, err = netutil.HostWithPort("localhost:8080")
+	assert.NoError(t, err)
+	assert.EqualValues(t, "localhost:8080", hostport)
+
+	hostport, err = netutil.HostWithPort("_xmpp-server._tcp.google.com")
+	assert.NoError(t, err)
+	assert.EqualValues(t, "_xmpp-server._tcp.google.com:5269", hostport)
+
+	hostport, err = netutil.HostWithPort("localhost")
+	assert.Error(t, err)
 }
