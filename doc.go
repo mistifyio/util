@@ -1,2 +1,2 @@
-// Packge util containes utility functionality for Mistify.
+// Package util containes utility functionality for Mistify.
 package util

@@ -2,7 +2,7 @@
 
 [![util](https://godoc.org/github.com/mistifyio/util?status.png)](https://godoc.org/github.com/mistifyio/util)
 
-Packge util containes utility functionality for Mistify.
+Package util containes utility functionality for Mistify.
 
 ## Usage
 
