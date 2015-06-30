@@ -6,6 +6,21 @@ Package net provides additional network utility functions.
 
 ## Usage
 
+#### func  HostWithPort
+
+```go
+func HostWithPort(input string) (string, error)
+```
+HostWithPort returns a host:port or [host]:port, performing the necessary port
+lookup if one is not provided. Results are cached.
+
+#### func  LookupSRVPort
+
+```go
+func LookupSRVPort(name string) (uint16, error)
+```
+LookupSRVPort determines the port for a service via an SRV lookup
+
 #### func  SplitHostPort
 
 ```go
