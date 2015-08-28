@@ -6,6 +6,7 @@ import (
 	"testing"
 	"text/tabwriter"
 
+	logx "github.com/mistifyio/mistify-logrus-ext"
 	netutil "github.com/mistifyio/util/net"
 	"github.com/stretchr/testify/assert"
 )
@@ -43,7 +44,7 @@ func ExampleSplit() {
 
 		fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", hp, host, port, err)
 	}
-	w.Flush()
+	logx.LogReturnedErr(w.Flush, "failed to flush tabwriter")
 
 	// Output:
 	// HOSTPORT					HOST					PORT	ERR
