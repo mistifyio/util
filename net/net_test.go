@@ -44,7 +44,7 @@ func ExampleSplit() {
 
 		fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", hp, host, port, err)
 	}
-	logx.LogReturnedErr(w.Flush, "failed to flush tabwriter")
+	logx.LogReturnedErr(w.Flush, nil, "failed to flush tabwriter")
 
 	// Output:
 	// HOSTPORT					HOST					PORT	ERR
