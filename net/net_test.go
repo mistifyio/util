@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func ExampleSplit() {
+func ExampleSplitHostPort() {
 	examples := []string{
 		"localhost",
 		"localhost:1234",
@@ -32,10 +32,12 @@ func ExampleSplit() {
 		"[loca[lhost]:1234",
 		"[loca]lhost]:1234",
 		"[localhost]:1234]",
+		"a[localhost]:1234",
+		"[localhost]:1:234",
 	}
 
 	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
+	w.Init(os.Stdout, 5, 0, 3, ' ', 0)
 	fmt.Fprintln(w, "HOSTPORT\tHOST\tPORT\tERR")
 	fmt.Fprintln(w, "========\t====\t====\t===")
 
@@ -47,27 +49,29 @@ func ExampleSplit() {
 	logx.LogReturnedErr(w.Flush, nil, "failed to flush tabwriter")
 
 	// Output:
-	// HOSTPORT					HOST					PORT	ERR
-	// ========					====					====	===
-	// localhost					localhost					<nil>
-	// localhost:1234					localhost				1234	<nil>
-	// [localhost]					localhost					<nil>
-	// [localhost]:1234				localhost				1234	<nil>
-	// 2001:db8:85a3:8d3:1319:8a2e:370:7348		2001:db8:85a3:8d3:1319:8a2e:370		7348	<nil>
-	// [2001:db8:85a3:8d3:1319:8a2e:370:7348]		2001:db8:85a3:8d3:1319:8a2e:370:7348		<nil>
-	// [2001:db8:85a3:8d3:1319:8a2e:370:7348]:443	2001:db8:85a3:8d3:1319:8a2e:370:7348	443	<nil>
-	// 2001:db8:85a3:8d3:1319:8a2e:370:7348:443	2001:db8:85a3:8d3:1319:8a2e:370:7348	443	<nil>
-	// :1234											1234	<nil>
-	// 												<nil>
-	// :::						::						<nil>
-	// foo:1234:bar					foo:1234				bar	<nil>
-	// [2001:db8:85a3:8d3:1319:8a2e:370:7348								missing ']'
-	// [localhost											missing ']'
-	// 2001:db8:85a3:8d3:1319:8a2e:370:7348]								missing '['
-	// localhost]											missing '['
-	// [loca[lhost]:1234										too many '['
-	// [loca]lhost]:1234										too many ']'
-	// [localhost]:1234]										too many ']'
+	// HOSTPORT                                     HOST                                   PORT   ERR
+	// ========                                     ====                                   ====   ===
+	// localhost                                    localhost                                     <nil>
+	// localhost:1234                               localhost                              1234   <nil>
+	// [localhost]                                  localhost                                     <nil>
+	// [localhost]:1234                             localhost                              1234   <nil>
+	// 2001:db8:85a3:8d3:1319:8a2e:370:7348         2001:db8:85a3:8d3:1319:8a2e:370        7348   <nil>
+	// [2001:db8:85a3:8d3:1319:8a2e:370:7348]       2001:db8:85a3:8d3:1319:8a2e:370:7348          <nil>
+	// [2001:db8:85a3:8d3:1319:8a2e:370:7348]:443   2001:db8:85a3:8d3:1319:8a2e:370:7348   443    <nil>
+	// 2001:db8:85a3:8d3:1319:8a2e:370:7348:443     2001:db8:85a3:8d3:1319:8a2e:370:7348   443    <nil>
+	// :1234                                                                               1234   <nil>
+	//                                                                                            <nil>
+	// :::                                          ::                                            <nil>
+	// foo:1234:bar                                 foo:1234                               bar    <nil>
+	// [2001:db8:85a3:8d3:1319:8a2e:370:7348                                                      missing ']'
+	// [localhost                                                                                 missing ']'
+	// 2001:db8:85a3:8d3:1319:8a2e:370:7348]                                                      missing '['
+	// localhost]                                                                                 missing '['
+	// [loca[lhost]:1234                                                                          too many '['
+	// [loca]lhost]:1234                                                                          too many ']'
+	// [localhost]:1234]                                                                          too many ']'
+	// a[localhost]:1234                                                                          nothing can come before '['
+	// [localhost]:1:234                            localhost                                     poorly separated or formatted port
 }
 
 func TestLookupSRVPort(t *testing.T) {
@@ -93,6 +97,13 @@ func TestHostWithPort(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, "_xmpp-server._tcp.google.com:5269", hostport)
 
+	hostport, err = netutil.HostWithPort("_xmpp-server._tcp.google.com")
+	assert.NoError(t, err)
+	assert.EqualValues(t, "_xmpp-server._tcp.google.com:5269", hostport)
+
 	hostport, err = netutil.HostWithPort("localhost")
+	assert.Error(t, err)
+
+	hostport, err = netutil.HostWithPort("[localhost")
 	assert.Error(t, err)
 }
