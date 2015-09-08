@@ -1,77 +1,49 @@
 package net_test
 
 import (
-	"fmt"
-	"os"
+	"errors"
 	"testing"
-	"text/tabwriter"
 
-	logx "github.com/mistifyio/mistify-logrus-ext"
 	netutil "github.com/mistifyio/util/net"
 	"github.com/stretchr/testify/assert"
 )
 
-func ExampleSplitHostPort() {
-	examples := []string{
-		"localhost",
-		"localhost:1234",
-		"[localhost]",
-		"[localhost]:1234",
-		"2001:db8:85a3:8d3:1319:8a2e:370:7348",
-		"[2001:db8:85a3:8d3:1319:8a2e:370:7348]",
-		"[2001:db8:85a3:8d3:1319:8a2e:370:7348]:443",
-		"2001:db8:85a3:8d3:1319:8a2e:370:7348:443",
-		":1234",
-		"",
-		":::",
-		"foo:1234:bar",
-		"[2001:db8:85a3:8d3:1319:8a2e:370:7348",
-		"[localhost",
-		"2001:db8:85a3:8d3:1319:8a2e:370:7348]",
-		"localhost]",
-		"[loca[lhost]:1234",
-		"[loca]lhost]:1234",
-		"[localhost]:1234]",
-		"a[localhost]:1234",
-		"[localhost]:1:234",
+func TestSplitHostPort(t *testing.T) {
+	tests := []struct {
+		input string
+		host  string
+		port  string
+		err   error
+	}{
+		{"localhost", "localhost", "", nil},
+		{"localhost:1234", "localhost", "1234", nil},
+		{"[localhost]", "localhost", "", nil},
+		{"[localhost]:1234", "localhost", "1234", nil},
+		{"2001:db8:85a3:8d3:1319:8a2e:370:7348", "2001:db8:85a3:8d3:1319:8a2e:370", "7348", nil},
+		{"[2001:db8:85a3:8d3:1319:8a2e:370:7348]", "2001:db8:85a3:8d3:1319:8a2e:370:7348", "", nil},
+		{"[2001:db8:85a3:8d3:1319:8a2e:370:7348]:443", "2001:db8:85a3:8d3:1319:8a2e:370:7348", "443", nil},
+		{"2001:db8:85a3:8d3:1319:8a2e:370:7348:443", "2001:db8:85a3:8d3:1319:8a2e:370:7348", "443", nil},
+		{":1234", "", "1234", nil},
+		{"", "", "", nil},
+		{":::", "::", "", nil},
+		{"foo:1234:bar", "foo:1234", "bar", nil},
+		{"[2001:db8:85a3:8d3:1319:8a2e:370:7348", "", "", errors.New("missing ']'")},
+		{"[localhost", "", "", errors.New("missing ']'")},
+		{"2001:db8:85a3:8d3:1319:8a2e:370:7348]", "", "", errors.New("missing '['")},
+		{"localhost]", "", "", errors.New("missing '['")},
+		{"[loca[lhost]:1234", "", "", errors.New("too many '['")},
+		{"[loca]lhost]:1234", "", "", errors.New("too many ']'")},
+		{"[localhost]:1234]", "", "", errors.New("too many ']'")},
+		{"a[localhost]:1234", "", "", errors.New("nothing can come before '['")},
+		{"[localhost]:1:234", "localhost", "", errors.New("poorly separated or formatted port")},
 	}
 
-	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 5, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "HOSTPORT\tHOST\tPORT\tERR")
-	fmt.Fprintln(w, "========\t====\t====\t===")
-
-	for _, hp := range examples {
-		host, port, err := netutil.SplitHostPort(hp)
-
-		fmt.Fprintf(w, "%s\t%s\t%s\t%v\n", hp, host, port, err)
+	for _, tt := range tests {
+		host, port, err := netutil.SplitHostPort(tt.input)
+		assert.Equal(t, tt.host, host, tt.input)
+		assert.Equal(t, tt.port, port, tt.input)
+		assert.Equal(t, tt.err, err, tt.input)
 	}
-	logx.LogReturnedErr(w.Flush, nil, "failed to flush tabwriter")
-
-	// Output:
-	// HOSTPORT                                     HOST                                   PORT   ERR
-	// ========                                     ====                                   ====   ===
-	// localhost                                    localhost                                     <nil>
-	// localhost:1234                               localhost                              1234   <nil>
-	// [localhost]                                  localhost                                     <nil>
-	// [localhost]:1234                             localhost                              1234   <nil>
-	// 2001:db8:85a3:8d3:1319:8a2e:370:7348         2001:db8:85a3:8d3:1319:8a2e:370        7348   <nil>
-	// [2001:db8:85a3:8d3:1319:8a2e:370:7348]       2001:db8:85a3:8d3:1319:8a2e:370:7348          <nil>
-	// [2001:db8:85a3:8d3:1319:8a2e:370:7348]:443   2001:db8:85a3:8d3:1319:8a2e:370:7348   443    <nil>
-	// 2001:db8:85a3:8d3:1319:8a2e:370:7348:443     2001:db8:85a3:8d3:1319:8a2e:370:7348   443    <nil>
-	// :1234                                                                               1234   <nil>
-	//                                                                                            <nil>
-	// :::                                          ::                                            <nil>
-	// foo:1234:bar                                 foo:1234                               bar    <nil>
-	// [2001:db8:85a3:8d3:1319:8a2e:370:7348                                                      missing ']'
-	// [localhost                                                                                 missing ']'
-	// 2001:db8:85a3:8d3:1319:8a2e:370:7348]                                                      missing '['
-	// localhost]                                                                                 missing '['
-	// [loca[lhost]:1234                                                                          too many '['
-	// [loca]lhost]:1234                                                                          too many ']'
-	// [localhost]:1234]                                                                          too many ']'
-	// a[localhost]:1234                                                                          nothing can come before '['
-	// [localhost]:1:234                            localhost                                     poorly separated or formatted port
 }
 
 func TestLookupSRVPort(t *testing.T) {
@@ -81,29 +53,27 @@ func TestLookupSRVPort(t *testing.T) {
 
 	port, err = netutil.LookupSRVPort("_xmpp-server._tcp.asduhaisudbfa.invalid")
 	assert.Error(t, err)
-	assert.Empty(t, 0, port)
+	assert.Empty(t, port)
 }
 
 func TestHostWithPort(t *testing.T) {
-	hostport, err := netutil.HostWithPort(":8080")
-	assert.NoError(t, err)
-	assert.EqualValues(t, ":8080", hostport)
+	tests := []struct {
+		input       string
+		hostport    string
+		expectedErr bool
+	}{
+		{":8080", ":8080", false},
+		{"localhost:8080", "localhost:8080", false},
+		{"_xmpp-server._tcp.google.com", "_xmpp-server._tcp.google.com:5269", false},
+		{"localhost", "", true},
+		{"[localhost", "", true},
+	}
 
-	hostport, err = netutil.HostWithPort("localhost:8080")
-	assert.NoError(t, err)
-	assert.EqualValues(t, "localhost:8080", hostport)
-
-	hostport, err = netutil.HostWithPort("_xmpp-server._tcp.google.com")
-	assert.NoError(t, err)
-	assert.EqualValues(t, "_xmpp-server._tcp.google.com:5269", hostport)
-
-	hostport, err = netutil.HostWithPort("_xmpp-server._tcp.google.com")
-	assert.NoError(t, err)
-	assert.EqualValues(t, "_xmpp-server._tcp.google.com:5269", hostport)
-
-	hostport, err = netutil.HostWithPort("localhost")
-	assert.Error(t, err)
-
-	hostport, err = netutil.HostWithPort("[localhost")
-	assert.Error(t, err)
+	for _, tt := range tests {
+		hostport, err := netutil.HostWithPort(tt.input)
+		if tt.expectedErr {
+			assert.Error(t, err, tt.input)
+		}
+		assert.Equal(t, tt.hostport, hostport, tt.input)
+	}
 }
