@@ -125,11 +125,3 @@ func HostWithPort(input string) (string, error) {
 
 	return hostportCache[input], nil
 }
-
-func isMissingPort(err error) bool {
-	addrError, ok := err.(*net.AddrError)
-	if !ok {
-		return false
-	}
-	return addrError.Err == missingPortMsg
-}
